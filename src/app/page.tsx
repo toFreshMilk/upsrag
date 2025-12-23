@@ -1,65 +1,53 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+import { useState } from "react";
+import Dashboard from "@/components/Dashboard";
+import FileSection from "@/components/FileSection";
+import ChatSection from "@/components/ChatSection";
+
+export default function MainPage() {
+    // 1. 전체 상태 관리
+    const [stats, setStats] = useState({
+        totalDocs: 0,
+        totalTokens: 0,
+        avgLatency: 0,
+    });
+
+    // 2. 상태 업데이트 핸들러 (FileSection, ChatSection에서 호출)
+    const updateStats = (newDocs: number, newTokens: number, latencyMs: number) => {
+        setStats((prev) => {
+            // 평균 응답속도 재계산 (단순 이동평균 예시)
+            const prevCount = prev.totalDocs > 0 || prev.avgLatency > 0 ? 1 : 0; // 기존 데이터가 있으면 가중치 1
+            const newLatency = prev.avgLatency === 0
+                ? latencyMs
+                : Math.round((prev.avgLatency + latencyMs) / 2);
+
+            return {
+                totalDocs: prev.totalDocs + newDocs,
+                totalTokens: prev.totalTokens + newTokens,
+                avgLatency: latencyMs > 0 ? newLatency : prev.avgLatency,
+            };
+        });
+    };
+
+    return (
+        <main className="flex flex-col h-screen max-h-screen bg-slate-50 p-6 overflow-hidden">
+            <header className="mb-6">
+                {/* 상태 전달 */}
+                <Dashboard stats={stats} />
+            </header>
+
+            <div className="flex flex-1 gap-6 min-h-0">
+                <section className="w-1/3 flex flex-col">
+                    {/* 업로드 성공 시 문서 수, 토큰 수 업데이트 */}
+                    <FileSection onUploadSuccess={(tokens) => updateStats(1, tokens, 0)} />
+                </section>
+
+                <section className="flex-1 flex flex-col">
+                    {/* 대화 완료 시 토큰 수, 응답 속도 업데이트 */}
+                    <ChatSection onChatComplete={(tokens, latency) => updateStats(0, tokens, latency)} />
+                </section>
+            </div>
+        </main>
+    );
 }
