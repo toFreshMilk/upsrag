@@ -3,7 +3,7 @@ import OpenAI from "openai";
 
 // Upstage Solar 클라이언트 설정
 const solar = new OpenAI({
-    apiKey: process.env.NEXT_PUBLIC_UPSTAGE_API_KEY,
+    apiKey: process.env.UPSTAGE_API_KEY,
     baseURL: "https://api.upstage.ai/v1/solar" // 기본 URL
 });
 
@@ -19,7 +19,6 @@ export async function POST(req: Request) {
                 { role: "system", content: "당신은 깊이 생각하고 논리적으로 답변하는 Solar AI입니다." },
                 ...messages
             ],
-            // @ts-expect-error: OpenAI SDK 타입에 아직 reasoning_effort가 없을 수 있음
             reasoning_effort: "high", // 추론 강도 설정 (low, medium, high)
             stream: false,
         });
