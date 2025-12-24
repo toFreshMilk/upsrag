@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { addDocument } from "@/lib/vectorStore";
+import {splitTextIntoChunks} from "@/lib/chunking";
 
 const API_KEY = process.env.NEXT_PUBLIC_UPSTAGE_API_KEY;
 
@@ -74,25 +75,30 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "파싱된 텍스트가 없습니다. (빈 문서이거나 이미지일 수 있음)" }, { status: 400 });
         }
 
-        // 2. Embedding
-        // 임베딩 모델의 토큰 한계를 고려해 앞부분 3000자만 사용
-        const chunk = textContent.substring(0, 3000);
+        const chunks = splitTextIntoChunks(textContent, 2000, 200); // 2000자씩 자르고 200자 겹침
 
-        console.log("[Embed API] Embedding text length:", chunk.length);
+        console.log(`[Embed API] Total chunks created: ${chunks.length}`);
 
-        const embedRes = await upstage.embeddings.create({
-            model: "embedding-passage",
-            input: chunk,
-        });
+        let totalTokens = 0;
 
-        // 3. Storage
-        addDocument(chunk, embedRes.data[0].embedding);
-        console.log("[Embed API] Success! Tokens used:", embedRes.usage.total_tokens);
+        // 모든 청크를 순회하며 임베딩 (병렬 처리 시 Rate Limit 걸릴 수 있으니 순차 처리 추천)
+        for (const chunk of chunks) {
+            const embedRes = await upstage.embeddings.create({
+                model: "embedding-passage",
+                input: chunk,
+            });
+
+            // 3. Storage
+            addDocument(chunk, embedRes.data[0].embedding);
+            totalTokens += embedRes.usage.total_tokens;
+        }
+
+        console.log("[Embed API] All chunks embedded. Total tokens:", totalTokens);
 
         return NextResponse.json({
             success: true,
-            tokens: embedRes.usage.total_tokens,
-            preview: chunk.substring(0, 50) + "..."
+            tokens: totalTokens,
+            preview: `총 ${chunks.length}개 조각으로 임베딩됨.`
         });
 
     } catch (error: any) {
