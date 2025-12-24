@@ -3,7 +3,7 @@ import OpenAI from "openai";
 
 // Upstage Solar 클라이언트 설정
 const solar = new OpenAI({
-    apiKey: process.env.UPSTAGE_API_KEY,
+    apiKey: process.env.NEXT_PUBLIC_UPSTAGE_API_KEY,
     baseURL: "https://api.upstage.ai/v1/solar" // 기본 URL
 });
 
