@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { searchVectors } from "@/lib/vectorStore";
+import { RAG_CONFIG } from "@/lib/constants";
+
 
 const solar = new OpenAI({
     apiKey: process.env.NEXT_PUBLIC_UPSTAGE_API_KEY,
@@ -24,8 +26,7 @@ export async function POST(req: Request) {
         const queryVector = queryEmbed.data[0].embedding;
 
         // 2. 문서 검색
-        // topK를 10개 정도로 설정
-        const relevantDocs = searchVectors(queryVector, 10);
+        const relevantDocs = searchVectors(queryVector, RAG_CONFIG.TOP_K);
         console.log(`[Chat API] 검색된 문서 개수: ${relevantDocs.length}`);
 
         if (relevantDocs.length > 0) {

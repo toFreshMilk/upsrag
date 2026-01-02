@@ -1,4 +1,4 @@
-// 간단한 인메모리 벡터 저장소 (전역 변수 활용)
+import { RAG_CONFIG } from "@/lib/constants";
 
 interface Document {
     text: string;
@@ -23,7 +23,7 @@ export function addDocument(text: string, embedding: number[]) {
     console.log(`[VectorStore] 문서 추가됨. 현재 총 ${vectorStore.length}개`);
 }
 
-export function searchVectors(queryEmbedding: number[], topK = 10) {
+export function searchVectors(queryEmbedding: number[], topK = RAG_CONFIG.TOP_K) {
     if (vectorStore.length === 0) {
         console.log("[VectorStore] 저장된 문서가 없습니다.");
         return [];
