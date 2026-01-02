@@ -24,8 +24,8 @@ export async function POST(req: Request) {
         const queryVector = queryEmbed.data[0].embedding;
 
         // 2. 문서 검색
-        // topK를 3개 정도로 설정
-        const relevantDocs = searchVectors(queryVector, 3);
+        // topK를 10개 정도로 설정
+        const relevantDocs = searchVectors(queryVector, 10);
         console.log(`[Chat API] 검색된 문서 개수: ${relevantDocs.length}`);
 
         if (relevantDocs.length > 0) {

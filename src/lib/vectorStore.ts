@@ -23,7 +23,7 @@ export function addDocument(text: string, embedding: number[]) {
     console.log(`[VectorStore] 문서 추가됨. 현재 총 ${vectorStore.length}개`);
 }
 
-export function searchVectors(queryEmbedding: number[], topK = 3) {
+export function searchVectors(queryEmbedding: number[], topK = 10) {
     if (vectorStore.length === 0) {
         console.log("[VectorStore] 저장된 문서가 없습니다.");
         return [];
