@@ -28,11 +28,11 @@ export default function Dashboard({ stats }: DashboardProps) {
     ];
 
     return (
-        <div className="grid grid-cols-3 gap-4">
-            {displayStats.map((stat) => (
-                <div key={stat.label} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                    <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                    <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+        <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm shrink-0">
+            {displayStats.map((stat, index) => (
+                <div key={stat.label} className={`flex flex-col items-center flex-1 ${index !== displayStats.length - 1 ? 'border-r border-slate-100' : ''}`}>
+                    <p className="text-xs font-medium text-slate-500">{stat.label}</p>
+                    <p className={`text-base font-bold mt-0.5 ${stat.color}`}>{stat.value}</p>
                 </div>
             ))}
         </div>

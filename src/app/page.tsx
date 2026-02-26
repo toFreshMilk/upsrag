@@ -31,23 +31,15 @@ export default function MainPage() {
     };
 
     return (
-        <main className="flex flex-col h-screen max-h-screen bg-slate-50 p-6 overflow-hidden">
-            <header className="mb-6">
-                {/* 상태 전달 */}
+        <main className="flex h-screen max-h-screen bg-slate-50 p-6 overflow-hidden gap-6">
+            <section className="w-1/3 flex flex-col gap-4">
                 <Dashboard stats={stats} />
-            </header>
+                <FileSection onUploadSuccess={(tokens) => updateStats(1, tokens, 0)} />
+            </section>
 
-            <div className="flex flex-1 gap-6 min-h-0">
-                <section className="w-1/3 flex flex-col">
-                    {/* 업로드 성공 시 문서 수, 토큰 수 업데이트 */}
-                    <FileSection onUploadSuccess={(tokens) => updateStats(1, tokens, 0)} />
-                </section>
-
-                <section className="flex-1 flex flex-col">
-                    {/* 대화 완료 시 토큰 수, 응답 속도 업데이트 */}
-                    <ChatSection onChatComplete={(tokens, latency) => updateStats(0, tokens, latency)} />
-                </section>
-            </div>
+            <section className="flex-1 flex flex-col">
+                <ChatSection onChatComplete={(tokens, latency) => updateStats(0, tokens, latency)} />
+            </section>
         </main>
     );
 }
