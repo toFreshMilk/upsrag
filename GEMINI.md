@@ -9,9 +9,10 @@
 ---
 
 ## 📚 API Reference & Documentation (중요)
-- **Upstage API 연동 등 주요 기능을 구현할 때는 반드시 로컬에 저장된 API 문서 파일을 먼저 참조할 것.**
-- **참조할 문서 경로**: `[여기에 파일 경로 입력, 예: docs/upstage_api_reference.md]`
-- 새로운 기능을 설계하거나 API 호출 코드를 작성하기 전에, 위 문서에 명시된 파라미터(예: `reasoning_effort`, `stream`, `tools` 등), 제약 사항, 응답 포맷을 우선적으로 읽고 코드를 작성한다.
+
+[//]: # (- **Upstage API 연동 등 주요 기능을 구현할 때는 반드시 로컬에 저장된 API 문서 파일을 먼저 참조할 것.**)
+[//]: # (- **참조할 문서 경로**: `[여기에 파일 경로 입력, 예: docs/upstage_api_reference.md]`)
+[//]: # (- 새로운 기능을 설계하거나 API 호출 코드를 작성하기 전에, 위 문서에 명시된 파라미터&#40;예: `reasoning_effort`, `stream`, `tools` 등&#41;, 제약 사항, 응답 포맷을 우선적으로 읽고 코드를 작성한다.)
 
 ---
 
