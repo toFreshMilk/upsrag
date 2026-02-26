@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
         // 5. LLM 호출
         const completion = await solar.chat.completions.create({
-            model: "solar-pro2",
+            model: "solar-pro3",
             messages: finalMessages,
             stream: false,
         });
