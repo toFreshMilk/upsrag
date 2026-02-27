@@ -10,6 +10,7 @@ const solar = new OpenAI({
 });
 
 export async function POST(req: Request) {
+    const totalStartTime = Date.now();
     try {
         const { messages } = await req.json();
 
@@ -19,14 +20,18 @@ export async function POST(req: Request) {
 
         // 1. 질문 임베딩 (Query 모델 사용 필수!)
         // 중요: 질문용 모델인 'embedding-query'를 써야 문서('embedding-passage')랑 매칭이 잘 됩니다.
+        const embedStartTime = Date.now();
         const queryEmbed = await solar.embeddings.create({
             model: "embedding-query",
             input: lastUserMessage,
         });
         const queryVector = queryEmbed.data[0].embedding;
+        console.log(`[Chat API] 임베딩 생성 소요 시간: ${Date.now() - embedStartTime}ms`);
 
         // 2. 문서 검색
+        const searchStartTime = Date.now();
         const relevantDocs = searchVectors(queryVector, RAG_CONFIG.TOP_K);
+        console.log(`[Chat API] 벡터 검색 소요 시간: ${Date.now() - searchStartTime}ms`);
         console.log(`[Chat API] 검색된 문서 개수: ${relevantDocs.length}`);
 
         if (relevantDocs.length > 0) {
@@ -60,12 +65,15 @@ export async function POST(req: Request) {
         ];
 
         // 5. LLM 호출
+        const llmStartTime = Date.now();
         const completion = await solar.chat.completions.create({
             model: "solar-pro3",
             messages: finalMessages,
             stream: false,
         });
+        console.log(`[Chat API] LLM 호출 소요 시간: ${Date.now() - llmStartTime}ms`);
 
+        console.log(`[Chat API] 전체 API 응답 소요 시간: ${Date.now() - totalStartTime}ms`);
         return NextResponse.json({
             content: completion.choices[0].message.content,
             usage: completion.usage
