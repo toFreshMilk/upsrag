@@ -76,6 +76,7 @@ export async function POST(req: Request) {
                 const embedRes = await upstage.embeddings.create({
                     model: "embedding-passage",
                     input: chunk,
+                    encoding_format: "float"
                 });
 
                 // 저장소에 추가

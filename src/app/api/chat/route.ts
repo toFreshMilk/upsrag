@@ -24,6 +24,7 @@ export async function POST(req: Request) {
         const queryEmbed = await solar.embeddings.create({
             model: "embedding-query",
             input: lastUserMessage,
+            encoding_format: "float"
         });
         const queryVector = queryEmbed.data[0].embedding;
         console.log(`[Chat API] 임베딩 생성 소요 시간: ${Date.now() - embedStartTime}ms`);
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
         // 5. LLM 호출
         const llmStartTime = Date.now();
         const completion = await solar.chat.completions.create({
-            model: "solar-pro3",
+            model: "solar-pro",
             messages: finalMessages,
             stream: false,
         });
