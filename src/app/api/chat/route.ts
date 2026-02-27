@@ -65,20 +65,33 @@ export async function POST(req: Request) {
             ...messages.filter((m: any) => m.role !== "system") // 기존 시스템 메시지 제거 후 새거 추가
         ];
 
-        // 5. LLM 호출
+        // 5. LLM 호출 (타임아웃 및 에러 처리 강화)
         const llmStartTime = Date.now();
-        const completion = await solar.chat.completions.create({
-            model: "solar-pro",
-            messages: finalMessages,
-            stream: false,
-        });
-        console.log(`[Chat API] LLM 호출 소요 시간: ${Date.now() - llmStartTime}ms`);
+        console.log("[Chat API] LLM(solar-pro3) 호출 시작...");
+        
+        try {
+            // Next.js Edge Function 등이 아닌 Node 런타임에서도 너무 오래 걸리면 문제가 생길 수 있으므로,
+            // OpenAI SDK의 timeout 옵션(기본값 10분)을 명시적으로 설정하거나 에러를 명확히 잡습니다.
+            const completion = await solar.chat.completions.create({
+                model: "solar-pro3",
+                messages: finalMessages,
+                stream: false,
+            }, { timeout: 60000 }); // 60초 타임아웃 강제 설정
 
-        console.log(`[Chat API] 전체 API 응답 소요 시간: ${Date.now() - totalStartTime}ms`);
-        return NextResponse.json({
-            content: completion.choices[0].message.content,
-            usage: completion.usage
-        });
+            console.log(`[Chat API] LLM 호출 소요 시간: ${Date.now() - llmStartTime}ms`);
+
+            console.log(`[Chat API] 전체 API 응답 소요 시간: ${Date.now() - totalStartTime}ms`);
+            return NextResponse.json({
+                content: completion.choices[0].message.content,
+                usage: completion.usage
+            });
+        } catch (llmError: any) {
+            console.error(`[Chat API] LLM 호출 실패 (소요 시간: ${Date.now() - llmStartTime}ms):`, llmError);
+            return NextResponse.json({ 
+                error: "LLM response failed or timed out", 
+                details: llmError.message 
+            }, { status: 504 }); // 504 Gateway Timeout
+        }
 
     } catch (error: any) {
         console.error("[Chat API] Error:", error);

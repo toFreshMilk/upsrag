@@ -65,17 +65,24 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
                 body: JSON.stringify({ messages: newMessages }),
             });
 
-            if (!res.ok) throw new Error("API Error");
-
             const data = await res.json();
+
+            if (!res.ok) {
+                const errorMessage = data.details || data.error || "알 수 없는 오류가 발생했습니다.";
+                throw new Error(`API Error: ${errorMessage}`);
+            }
+
             const endTime = Date.now();
             const latency = endTime - startTime;
 
             onChatComplete(data.usage?.total_tokens || 0, latency);
             setMessages([...newMessages, { role: "assistant", content: data.content }]);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            setMessages([...newMessages, { role: "assistant", content: "⚠️ 오류가 발생했습니다. 잠시 후 다시 시도해주세요." }]);
+            setMessages([...newMessages, { 
+                role: "assistant", 
+                content: `⚠️ 오류가 발생했습니다: ${error.message}\n잠시 후 다시 시도해주세요.` 
+            }]);
         } finally {
             setIsLoading(false);
         }
