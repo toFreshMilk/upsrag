@@ -31,6 +31,8 @@ export async function POST(req: Request) {
         parseFormData.append("model", "document-parse");
         parseFormData.append("ocr", "auto");
         parseFormData.append("output_formats", JSON.stringify(['html', 'text']));
+        parseFormData.append("base64_encoding", JSON.stringify(["table"]));
+        parseFormData.append("coordinates", "true");
 
         const parseRes = await fetch("https://api.upstage.ai/v1/document-digitization", {
             method: "POST",

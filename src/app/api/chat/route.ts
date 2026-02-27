@@ -75,6 +75,7 @@ export async function POST(req: Request) {
             const completion = await solar.chat.completions.create({
                 model: "solar-pro3",
                 messages: finalMessages,
+                reasoning_effort: "high",
                 stream: false,
             }, { timeout: 60000 }); // 60초 타임아웃 강제 설정
 
