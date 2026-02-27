@@ -1,41 +1,64 @@
 import { RAG_CONFIG } from "@/lib/constants";
+import fs from 'fs';
+import path from 'path';
 
 interface Document {
     text: string;
     embedding: number[];
 }
 
-// Next.js 개발 환경에서 HMR(Hot Module Replacement)로 인해
-// 전역 변수가 초기화되는 것을 방지하기 위해 globalThis에 저장합니다.
-const globalStore = global as unknown as { vectorStore: Document[] };
+const DATA_DIR = path.join(process.cwd(), 'data');
+const VECTOR_FILE = path.join(DATA_DIR, 'vectors.json');
 
-if (!globalStore.vectorStore) {
-    globalStore.vectorStore = [];
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// 외부에서 import해서 쓸 변수와 함수들
-export const vectorStore = globalStore.vectorStore;
+// Load vectors from file
+function loadVectors(): Document[] {
+    try {
+        if (fs.existsSync(VECTOR_FILE)) {
+            const data = fs.readFileSync(VECTOR_FILE, 'utf-8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error("[VectorStore] Failed to load vectors:", error);
+    }
+    return [];
+}
+
+// Save vectors to file
+function saveVectors(vectors: Document[]) {
+    try {
+        fs.writeFileSync(VECTOR_FILE, JSON.stringify(vectors, null, 2), 'utf-8');
+    } catch (error) {
+        console.error("[VectorStore] Failed to save vectors:", error);
+    }
+}
 
 export function addDocument(text: string, embedding: number[]) {
-    // 중복 방지를 위해 간단히 텍스트 길이 등으로 체크할 수도 있지만,
-    // 여기서는 일단 무조건 추가합니다.
-    vectorStore.push({ text, embedding });
-    console.log(`[VectorStore] 문서 추가됨. 현재 총 ${vectorStore.length}개`);
+    const vectors = loadVectors();
+    vectors.push({ text, embedding });
+    saveVectors(vectors);
+    console.log(`[VectorStore] 문서 추가됨 (파일 저장). 현재 총 ${vectors.length}개`);
 }
 
 export function searchVectors(queryEmbedding: number[], topK = RAG_CONFIG.TOP_K) {
-    if (vectorStore.length === 0) {
+    const vectors = loadVectors();
+    
+    if (vectors.length === 0) {
         console.log("[VectorStore] 저장된 문서가 없습니다.");
         return [];
     }
 
     // 코사인 유사도 계산 후 정렬
-    const results = vectorStore.map(doc => {
+    const results = vectors.map(doc => {
         const similarity = cosineSimilarity(queryEmbedding, doc.embedding);
         return { ...doc, similarity };
     })
-        .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, topK);
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, topK);
 
     return results;
 }
