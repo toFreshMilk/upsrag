@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { searchVectors } from "@/lib/vectorStore";
 import { RAG_CONFIG } from "@/lib/constants";
-
+import { logServerError } from "@/lib/server-logger";
 
 const solar = new OpenAI({
     apiKey: process.env.NEXT_PUBLIC_UPSTAGE_API_KEY,
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
                 usage: completion.usage
             });
         } catch (llmError: any) {
-            console.error(`[Chat API] LLM 호출 실패 (소요 시간: ${Date.now() - llmStartTime}ms):`, llmError);
+            logServerError('API_ERROR', `[Chat API] LLM 호출 실패 (소요 시간: ${Date.now() - llmStartTime}ms)`, llmError);
             return NextResponse.json({ 
                 error: "LLM response failed or timed out", 
                 details: llmError.message 
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         }
 
     } catch (error: any) {
-        console.error("[Chat API] Error:", error);
-        return NextResponse.json({ error: "Chat failed" }, { status: 500 });
+        logServerError('RUNTIME_ERROR', "[Chat API] 전반적인 에러 발생", error);
+        return NextResponse.json({ error: "Chat failed", details: error.message }, { status: 500 });
     }
 }

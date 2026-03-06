@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { logClientError } from "@/lib/logger";
 
 interface Message {
     role: "user" | "assistant";
@@ -20,6 +21,7 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
     ]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [isFreeChat, setIsFreeChat] = useState(false);
 
     // 스크롤 제어 상태
     const [isAutoScroll, setIsAutoScroll] = useState(true);
@@ -58,12 +60,21 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
 
         const startTime = Date.now();
 
+        // 10초 타임아웃 설정
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 10000);
+
         try {
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messages: newMessages }),
+                body: JSON.stringify({ 
+                    messages: newMessages,
+                    mode: isFreeChat ? "free" : "document"
+                }),
+                signal: abortController.signal
             });
+            clearTimeout(timeoutId);
 
             const data = await res.json();
 
@@ -79,9 +90,12 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
             setMessages([...newMessages, { role: "assistant", content: data.content }]);
         } catch (error: any) {
             console.error(error);
+            const isTimeout = error.name === 'AbortError' || error.message.includes('timeout');
+            const errorMessage = isTimeout ? '10초 이상 응답이 없어 요청이 취소되었습니다.' : error.message;
+            logClientError('API_ERROR', `[ChatSection] 채팅 중 에러 발생: ${errorMessage}`, error);
             setMessages([...newMessages, { 
                 role: "assistant", 
-                content: `⚠️ 오류가 발생했습니다: ${error.message}\n잠시 후 다시 시도해주세요.` 
+                content: `⚠️ 오류가 발생했습니다: ${errorMessage}\n잠시 후 다시 시도해주세요.` 
             }]);
         } finally {
             setIsLoading(false);
@@ -91,11 +105,23 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
     return (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
             {/* 1. 헤더 영역 */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50">
+            <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                 <h2 className="font-semibold text-slate-700 flex items-center gap-2">
                     <Bot className="w-5 h-5 text-indigo-500" />
                     Solar Chat (Reasoning)
                 </h2>
+                
+                {/* 모드 전환 토글 스위치 */}
+                <div className="flex items-center gap-2">
+                    <span className={`text-xs font-medium ${!isFreeChat ? 'text-indigo-600' : 'text-slate-400'}`}>문서 기반</span>
+                    <button 
+                        onClick={() => setIsFreeChat(!isFreeChat)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isFreeChat ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                    >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isFreeChat ? 'translate-x-4.5' : 'translate-x-1'}`} />
+                    </button>
+                    <span className={`text-xs font-medium ${isFreeChat ? 'text-emerald-600' : 'text-slate-400'}`}>자유 대화</span>
+                </div>
             </div>
 
             {/* 2. 메시지 리스트 영역 */}
@@ -161,7 +187,7 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
                     <input
                         className="flex-1 border border-slate-200 rounded-xl pl-4 pr-12 py-3 text-sm
               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-sm"
-                        placeholder="무엇이든 물어보세요..."
+                        placeholder={isFreeChat ? "무엇이든 자유롭게 물어보세요..." : "업로드된 문서에 대해 질문해보세요..."}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && sendMessage()}

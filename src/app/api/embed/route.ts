@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { addDocument } from "@/lib/vectorStore";
 import { splitTextIntoChunks } from "@/lib/chunking";
+import { logServerError } from "@/lib/server-logger";
 
 const API_KEY = process.env.NEXT_PUBLIC_UPSTAGE_API_KEY;
 
@@ -86,8 +87,8 @@ export async function POST(req: Request) {
 
                 totalTokens += embedRes.usage.total_tokens;
                 successCount++;
-            } catch (err) {
-                console.error(`[Embed API] Failed chunk ${i + 1}:`, err);
+            } catch (err: any) {
+                logServerError('API_ERROR', `[Embed API] Failed chunk ${i + 1}`, err);
                 // 하나 실패해도 멈추지 않음
             }
         }
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("[Embed API] Error:", error);
+        logServerError('RUNTIME_ERROR', "[Embed API] Error", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
