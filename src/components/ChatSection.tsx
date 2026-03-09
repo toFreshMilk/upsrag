@@ -60,9 +60,9 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
 
         const startTime = Date.now();
 
-        // 10초 타임아웃 설정
+        // 60초 타임아웃 설정 (추론 모델 대기 시간 확보)
         const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), 10000);
+        const timeoutId = setTimeout(() => abortController.abort(), 60000);
 
         try {
             const res = await fetch("/api/chat", {
@@ -91,7 +91,7 @@ export default function ChatSection({ onChatComplete }: ChatSectionProps) {
         } catch (error: any) {
             console.error(error);
             const isTimeout = error.name === 'AbortError' || error.message.includes('timeout');
-            const errorMessage = isTimeout ? '10초 이상 응답이 없어 요청이 취소되었습니다.' : error.message;
+            const errorMessage = isTimeout ? '60초 이상 응답이 없어 요청이 취소되었습니다.' : error.message;
             logClientError('API_ERROR', `[ChatSection] 채팅 중 에러 발생: ${errorMessage}`, error);
             setMessages([...newMessages, { 
                 role: "assistant", 

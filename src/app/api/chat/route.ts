@@ -12,50 +12,50 @@ const solar = new OpenAI({
 export async function POST(req: Request) {
     const totalStartTime = Date.now();
     try {
-        const { messages } = await req.json();
+        const { messages, mode } = await req.json();
 
         // 마지막 사용자 메시지 추출
         const lastUserMessage = messages[messages.length - 1].content;
-        console.log("[Chat API] 사용자 질문:", lastUserMessage);
+        console.log(`[Chat API] 사용자 질문 (${mode === 'free' ? '자유 대화' : '문서 기반'}):`, lastUserMessage);
 
-        // 1. 질문 임베딩 (Query 모델 사용 필수!)
-        // 중요: 질문용 모델인 'embedding-query'를 써야 문서('embedding-passage')랑 매칭이 잘 됩니다.
-        const embedStartTime = Date.now();
-        const queryEmbed = await solar.embeddings.create({
-            model: "embedding-query",
-            input: lastUserMessage,
-            encoding_format: "float"
-        });
-        const queryVector = queryEmbed.data[0].embedding;
-        console.log(`[Chat API] 임베딩 생성 소요 시간: ${Date.now() - embedStartTime}ms`);
-
-        // 2. 문서 검색
-        const searchStartTime = Date.now();
-        const relevantDocs = searchVectors(queryVector, RAG_CONFIG.TOP_K);
-        console.log(`[Chat API] 벡터 검색 소요 시간: ${Date.now() - searchStartTime}ms`);
-        console.log(`[Chat API] 검색된 문서 개수: ${relevantDocs.length}`);
-
-        if (relevantDocs.length > 0) {
-            console.log("[Chat API] 검색된 문서 미리보기:", relevantDocs[0].text.substring(0, 100));
-            console.log("[Chat API] 유사도 점수:", relevantDocs[0].similarity);
-        } else {
-            console.warn("[Chat API] 검색된 문서가 없습니다! (유사도 기준 미달이거나 데이터 없음)");
-        }
-
-        // 3. 시스템 프롬프트 구성 (RAG Context 주입)
         let systemContent = "당신은 Upstage Solar AI입니다. 사용자의 질문에 한국어로 친절하게 답변하세요.";
 
-        if (relevantDocs.length > 0) {
-            // 검색된 문서 내용을 컨텍스트로 추가
-            const contextText = relevantDocs.map(d => d.text).join("\n\n---\n\n");
-            systemContent = `
-                당신은 '문서 기반 AI 비서'입니다. 
-                아래 제공된 [참고 문서] 내용을 바탕으로 사용자의 질문에 답변하세요.
-                문서에 없는 내용은 "제공된 문서에 해당 내용이 없습니다"라고 솔직하게 말하세요.
+        // 자유 채팅 모드가 아닐 때만(문서 기반 모드일 때만) RAG 프로세스 실행
+        if (mode !== 'free') {
+            // 1. 질문 임베딩 (Query 모델 사용 필수!)
+            const embedStartTime = Date.now();
+            const queryEmbed = await solar.embeddings.create({
+                model: "embedding-query",
+                input: lastUserMessage,
+                encoding_format: "float"
+            });
+            const queryVector = queryEmbed.data[0].embedding;
+            console.log(`[Chat API] 임베딩 생성 소요 시간: ${Date.now() - embedStartTime}ms`);
+
+            // 2. 문서 검색
+            const searchStartTime = Date.now();
+            const relevantDocs = searchVectors(queryVector, RAG_CONFIG.TOP_K);
+            console.log(`[Chat API] 벡터 검색 소요 시간: ${Date.now() - searchStartTime}ms`);
+            console.log(`[Chat API] 검색된 문서 개수: ${relevantDocs.length}`);
+
+            if (relevantDocs.length > 0) {
+                console.log("[Chat API] 검색된 문서 미리보기:", relevantDocs[0].text.substring(0, 100));
+                console.log("[Chat API] 유사도 점수:", relevantDocs[0].similarity);
                 
-                [참고 문서]
-                ${contextText}
-             `.trim();
+                // 검색된 문서 내용을 컨텍스트로 추가
+                const contextText = relevantDocs.map(d => d.text).join("\n\n---\n\n");
+                systemContent = `
+                    당신은 '문서 기반 AI 비서'입니다. 
+                    아래 제공된 [참고 문서] 내용을 바탕으로 사용자의 질문에 답변하세요.
+                    문서에 없는 내용은 "제공된 문서에 해당 내용이 없습니다"라고 솔직하게 말하세요.
+                    
+                    [참고 문서]
+                    ${contextText}
+                `.trim();
+            } else {
+                console.warn("[Chat API] 검색된 문서가 없습니다! (유사도 기준 미달이거나 데이터 없음)");
+                systemContent = "당신은 문서 기반 AI 비서입니다. 하지만 현재 참고할 수 있는 문서가 없습니다. 이 사실을 사용자에게 알리고 아는 선에서 일반적인 답변을 제공하세요.";
+            }
         }
 
         // 4. 메시지 배열 재구성 (시스템 메시지 교체)
