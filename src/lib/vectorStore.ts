@@ -1,6 +1,7 @@
 import { RAG_CONFIG } from "@/lib/constants";
 import fs from 'fs';
 import path from 'path';
+import { logServerError } from "@/lib/server-logger";
 
 interface Document {
     text: string;
@@ -16,14 +17,17 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 // Load vectors from file
-function loadVectors(): Document[] {
+function loadVectors(): Document[] | null {
     try {
         if (fs.existsSync(VECTOR_FILE)) {
             const data = fs.readFileSync(VECTOR_FILE, 'utf-8');
+            if (!data.trim()) return [];
             return JSON.parse(data);
         }
-    } catch (error) {
+    } catch (error: any) {
+        logServerError('RUNTIME_ERROR', "[VectorStore] Failed to load vectors", error);
         console.error("[VectorStore] Failed to load vectors:", error);
+        return null; // Return null to indicate failure
     }
     return [];
 }
@@ -31,21 +35,28 @@ function loadVectors(): Document[] {
 // Save vectors to file
 function saveVectors(vectors: Document[]) {
     try {
-        fs.writeFileSync(VECTOR_FILE, JSON.stringify(vectors, null, 2), 'utf-8');
-    } catch (error) {
+        const tempFile = `${VECTOR_FILE}.tmp`;
+        fs.writeFileSync(tempFile, JSON.stringify(vectors, null, 2), 'utf-8');
+        fs.renameSync(tempFile, VECTOR_FILE);
+    } catch (error: any) {
+        logServerError('RUNTIME_ERROR', "[VectorStore] Failed to save vectors", error);
         console.error("[VectorStore] Failed to save vectors:", error);
     }
 }
 
 export function addDocument(text: string, embedding: number[]) {
     const vectors = loadVectors();
+    if (vectors === null) {
+        logServerError('RUNTIME_ERROR', "[VectorStore] Aborting addDocument due to vector load failure to prevent data loss.");
+        return; // Prevent overwriting data if read fails
+    }
     vectors.push({ text, embedding });
     saveVectors(vectors);
     console.log(`[VectorStore] 문서 추가됨 (파일 저장). 현재 총 ${vectors.length}개`);
 }
 
 export function searchVectors(queryEmbedding: number[], topK = RAG_CONFIG.TOP_K) {
-    const vectors = loadVectors();
+    const vectors = loadVectors() || [];
     
     if (vectors.length === 0) {
         console.log("[VectorStore] 저장된 문서가 없습니다.");

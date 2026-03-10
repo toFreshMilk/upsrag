@@ -7,10 +7,10 @@
     "pnpm": ">=8.9.0"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "node scripts/log-runner.js next dev -p 3100",
+    "build": "node scripts/log-runner.js next build",
+    "start": "node scripts/log-runner.js next start -p 3100",
+    "lint": "node scripts/log-runner.js next lint"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.19",
